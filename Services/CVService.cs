@@ -5,6 +5,7 @@ using MongoDB.Driver;
 
 namespace CVGeneratorAPI.Services;
 
+
 public class CVService
 {
     private readonly IMongoCollection<CVModel> _cvCollection;
@@ -23,6 +24,7 @@ public class CVService
     // ---------- READ ----------
     public Task<List<CVModel>> GetAllByUserAsync(string userId) =>
         _cvCollection.Find(c => c.UserId == userId).ToListAsync();
+
 
     public async Task<CVModel?> GetByIdForUserAsync(string id, string userId)
     {

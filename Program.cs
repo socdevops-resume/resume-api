@@ -7,22 +7,46 @@ using CVGeneratorAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // ===== Settings =====
+
+// Bind MongoDB configuration section to <see cref="MongoDBSettings"/> 
+// and register it for dependency injection.
+
 builder.Services.Configure<MongoDBSettings>(
     builder.Configuration.GetSection("MongoDBSettings"));
+
+
+// Bind JWT configuration section to <see cref="JwtSettings"/> 
+// and register it for dependency injection.
 
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
 // ===== Services =====
+
+
+// Register core application services as singletons:
+// - <see cref="CVService"/> for CV operations
+// - <see cref="UserService"/> for user management
+// - <see cref="TokenService"/> for JWT token handling
+
 builder.Services.AddSingleton<CVService>();
 builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<TokenService>();
+
+// ===== Controllers =====
+// Add controller support and minimal API endpoint discovery.
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 // ===== Swagger (+ Bearer button) =====
+
+
+// Configure Swagger with API metadata and JWT Bearer authentication support.
+// Adds an "Authorize" button to Swagger UI for testing secured endpoints.
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -56,9 +80,15 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
 // ===== Authentication / Authorization =====
+
+// Retrieve JWT settings from configuration and set up authentication using JWT Bearer tokens.
+// Includes validation for issuer, audience, signing key, and token lifetime.
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()
           ?? throw new InvalidOperationException("Jwt settings are missing.");
 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret));
@@ -80,11 +110,20 @@ builder.Services
         };
     });
 
+
+// Add authorization services to enforce role- or policy-based access control.
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
 // ===== Pipeline =====
+
+
+// Configure request pipeline:
+// - Enable Swagger in development
+// - Enforce HTTPS redirection
+// - Enable authentication and authorization middleware
+// - Map controllers to endpoints
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -93,7 +132,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Auth order matters:
+// Auth order matters: authentication before authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
