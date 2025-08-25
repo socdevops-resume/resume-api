@@ -99,8 +99,8 @@ public class CVsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CVResponse>> Create([FromBody] CreateCVRequest newCv)
     {
-        _logger.LogInformation("User {UserId} is creating a new CV", UserId);
-
+        _logger.LogInformation("User {UserId} is creating a new CV:", UserId );
+        _logger.LogInformation("CreateCV payload: {Payload}", System.Text.Json.JsonSerializer.Serialize(newCv));
         var model = newCv.ToModel(UserId);
         await _cvService.CreateCvAsync(model);
         var response = model.ToResponse();
@@ -125,7 +125,8 @@ public class CVsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<CVResponse>> Update(string id, [FromBody] UpdateCVRequest updatedCv)
     {
-       _logger.LogInformation("User {UserId} is updating CV {CvId}", UserId, id);
+        _logger.LogInformation("User {UserId} is updating CV {CvId}", UserId, id );
+        _logger.LogInformation("UpdateCV payload for {CvId}: {Payload}", id, System.Text.Json.JsonSerializer.Serialize(updatedCv));
 
         var existing = await _cvService.GetByIdForUserAsync(id, UserId);
         if (existing == null)
