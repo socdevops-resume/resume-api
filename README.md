@@ -90,3 +90,16 @@ CV_Generator_API/
 ```bash
 dotnet restore
 dotnet run
+```
+
+## 📖 API Documentation
+
+The backend includes interactive API docs powered by **Swagger UI**.  
+After running the backend, open:
+
+👉 [Swagger UI](http://localhost:5159/swagger/index.html)
+
+From here you can:
+- Explore all available endpoints
+- Try requests directly in the browser
+- Authenticate using JWT tokens via the **Authorize** button
