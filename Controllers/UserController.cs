@@ -22,16 +22,18 @@ public class UsersController : ControllerBase
 {
     private readonly UserService _userService;
     private readonly TokenService _tokenService;
+    private readonly ILogger<UsersController> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="UsersController"/>.
     /// </summary>
     /// <param name="userService">Service for user persistence.</param>
     /// <param name="tokenService">Service for issuing JWT tokens.</param>
-    public UsersController(UserService userService, TokenService tokenService)
+    public UsersController(UserService userService, TokenService tokenService, ILogger<UsersController> logger)
     {
         _userService = userService;
         _tokenService = tokenService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -50,6 +52,8 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<AuthResponse>> Create([FromBody] SignUpRequest request)
     {
         var existing = await _userService.GetByUsernameAsync(request.Username);
+        _logger.LogInformation("Signup attempt for {Username} {Email}", request.Username, request.Email);
+
         if (existing != null)
             return BadRequest(new AuthResponse { Message = "Username already exists." });
 
@@ -89,11 +93,20 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<UserResponse>> GetById(string id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId != id) return Forbid();
+        if (currentUserId != id)
+        {
+            _logger.LogWarning("Forbidden GET /api/users/{Id}: AuthUserId={AuthUserId}", id, currentUserId);
+            return Forbid();
+        }
 
         var user = await _userService.GetByIdAsync(id);
-        if (user == null) return NotFound("User not found.");
+        if (user == null)
+        {
+            _logger.LogWarning("User not found on GET: UserId={Id}", id);
+            return NotFound("User not found.");
+        }
 
+        _logger.LogInformation("User fetched: UserId={Id}, Username={Username}", user.Id, user.Username);
         return Ok(new UserResponse { Id = user.Id!, Username = user.Username, Email = user.Email });
     }
 
@@ -116,15 +129,27 @@ public class UsersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<UserResponse>> Update(string id, [FromBody] UpdateUserRequest request)
     {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId != id) return Forbid();
+       var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId != id)
+        {
+            _logger.LogWarning("Forbidden UPDATE /api/users/{Id}: AuthUserId={AuthUserId}", id, currentUserId);
+            return Forbid();
+        }
 
         var existingByUsername = await _userService.GetByUsernameAsync(request.Username);
         if (existingByUsername != null && existingByUsername.Id != id)
+        {
+            _logger.LogWarning("Username collision on update: Requested={Requested}, OwnerId={OwnerId}, CurrentUserId={UserId}",
+                request.Username, existingByUsername.Id, id);
             return BadRequest("Username already taken.");
+        }
 
         var existingUser = await _userService.GetByIdAsync(id);
-        if (existingUser == null) return NotFound("User not found.");
+        if (existingUser == null)
+        {
+            _logger.LogWarning("User not found on update: UserId={Id}", id);
+            return NotFound("User not found.");
+        }
 
         var passwordHash = string.IsNullOrWhiteSpace(request.Password)
             ? existingUser.PasswordHash
@@ -139,6 +164,7 @@ public class UsersController : ControllerBase
         };
 
         await _userService.UpdateUserAsync(id, updated);
+        _logger.LogInformation("User updated: UserId={Id}, Username={Username}", id, updated.Username);
 
         return Ok(new UserResponse { Id = updated.Id!, Username = updated.Username, Email = updated.Email });
     }
@@ -160,9 +186,15 @@ public class UsersController : ControllerBase
     public async Task<ActionResult> Delete(string id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId != id) return Forbid();
+        if (currentUserId != id)
+        {
+            _logger.LogWarning("Forbidden DELETE /api/users/{Id}: AuthUserId={AuthUserId}", id, currentUserId);
+            return Forbid();
+        }
 
         await _userService.DeleteUserAsync(id);
+        _logger.LogInformation("User deleted: UserId={Id}", id);
+
         return NoContent();
     }
 

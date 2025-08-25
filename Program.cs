@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.HttpLogging;
 using CVGeneratorAPI.Settings;
 using CVGeneratorAPI.Services;
 
@@ -108,17 +109,67 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+        // Optional: add logging for authentication events
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var hasAuth = ctx.Request.Headers.ContainsKey("Authorization");
+                var auth = hasAuth ? ctx.Request.Headers["Authorization"].ToString() : "(none)";
+                var logger = ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("JwtEvents");
+                logger.LogInformation("OnMessageReceived: has Authorization? {HasAuth}", hasAuth);
+                // logger.LogInformation("Authorization header: {Auth}", auth); // comment in if needed
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                var logger = ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("JwtEvents");
+                logger.LogInformation("OnTokenValidated: subject={Sub}, nameid={NameId}",
+                    ctx.Principal?.Identity?.Name,
+                    ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = ctx =>
+            {
+                var logger = ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("JwtEvents");
+                logger.LogWarning(ctx.Exception, "OnAuthenticationFailed: {Message}", ctx.Exception.Message);
+                return Task.CompletedTask;
+            }
+        };
     });
 
 
 // Add authorization services to enforce role- or policy-based access control.
 builder.Services.AddAuthorization();
+// add HTTP request logging
+builder.Services.AddHttpLogging(o =>
+{
+    o.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders
+                    | HttpLoggingFields.ResponsePropertiesAndHeaders;
+    // o.RequestHeaders.Add("Authorization"); 
+});
+// Add CORS policy to allow requests from any origin, which is useful for development.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 var app = builder.Build();
 
 // ===== Pipeline =====
-
-
 // Configure request pipeline:
 // - Enable Swagger in development
 // - Enforce HTTPS redirection
@@ -131,7 +182,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseHttpLogging();   // logs method/path/status, headers, etc.
+app.UseCors("Frontend");
 // Auth order matters: authentication before authorization
 app.UseAuthentication();
 app.UseAuthorization();

@@ -20,3 +20,4 @@ public class UserResponse
     /// </summary>
     public required string Email { get; set; }
 }
+    

@@ -22,13 +22,19 @@ namespace CVGeneratorAPI.Controllers;
 public class CVsController : ControllerBase
 {
     private readonly CVService _cvService;
+    private readonly ILogger<CVsController> _logger;
+
 
     /// <summary>
     /// Initializes a new instance of <see cref="CVsController"/>.
     /// </summary>
     /// <param name="cvService">Service that performs CRUD operations on CVs.</param>
-    public CVsController(CVService cvService) => _cvService = cvService;
-
+    /// <param name="logger">Logger for diagnostics.</param>
+    public CVsController(CVService cvService, ILogger<CVsController> logger)
+    {
+        _cvService = cvService;
+        _logger = logger;
+    }
     /// <summary>
     /// Gets the authenticated user's ID from the JWT.
     /// </summary>
@@ -46,7 +52,10 @@ public class CVsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<CVResponse>>> GetAll()
     {
+         _logger.LogInformation("User {UserId} requested all CVs", UserId);
         var cvs = await _cvService.GetAllByUserAsync(UserId);
+
+        _logger.LogInformation("User {UserId} retrieved {Count} CVs", UserId, cvs.Count);
         return Ok(cvs.Select(c => c.ToResponse()).ToList());
     }
 
@@ -64,8 +73,16 @@ public class CVsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<CVResponse>> GetById(string id)
     {
+        _logger.LogInformation("User {UserId} requested CV {CvId}", UserId, id);
         var cv = await _cvService.GetByIdForUserAsync(id, UserId);
-        if (cv == null) return NotFound("CV not found.");
+
+        if (cv == null)
+        {
+            _logger.LogWarning("User {UserId} tried to access CV {CvId} but it was not found", UserId, id);
+            return NotFound("CV not found.");
+        }
+
+        _logger.LogInformation("User {UserId} retrieved CV {CvId}", UserId, id);
         return Ok(cv.ToResponse());
     }
 
@@ -82,9 +99,14 @@ public class CVsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CVResponse>> Create([FromBody] CreateCVRequest newCv)
     {
+        _logger.LogInformation("User {UserId} is creating a new CV", UserId);
+
         var model = newCv.ToModel(UserId);
         await _cvService.CreateCvAsync(model);
         var response = model.ToResponse();
+
+        _logger.LogInformation("User {UserId} created CV {CvId}", UserId, response.Id);
+
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
 
@@ -103,14 +125,23 @@ public class CVsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<CVResponse>> Update(string id, [FromBody] UpdateCVRequest updatedCv)
     {
+       _logger.LogInformation("User {UserId} is updating CV {CvId}", UserId, id);
+
         var existing = await _cvService.GetByIdForUserAsync(id, UserId);
-        if (existing == null) return NotFound("CV not found.");
+        if (existing == null)
+        {
+            _logger.LogWarning("User {UserId} tried to update CV {CvId} but it was not found", UserId, id);
+            return NotFound("CV not found.");
+        }
 
         updatedCv.ApplyToModel(existing);
         existing.Id = id;
         existing.UserId = UserId;
 
         await _cvService.UpdateForUserAsync(id, UserId, existing);
+
+        _logger.LogInformation("User {UserId} updated CV {CvId}", UserId, id);
+
         return Ok(existing.ToResponse());
     }
 
@@ -128,10 +159,19 @@ public class CVsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(string id)
     {
+        _logger.LogInformation("User {UserId} is deleting CV {CvId}", UserId, id);
+
         var existing = await _cvService.GetByIdForUserAsync(id, UserId);
-        if (existing == null) return NotFound("CV not found.");
+        if (existing == null)
+        {
+            _logger.LogWarning("User {UserId} tried to delete CV {CvId} but it was not found", UserId, id);
+            return NotFound("CV not found.");
+        }
 
         await _cvService.DeleteForUserAsync(id, UserId);
+
+        _logger.LogInformation("User {UserId} deleted CV {CvId}", UserId, id);
+
         return NoContent();
     }
 }

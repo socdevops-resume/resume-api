@@ -34,3 +34,6 @@ dump/
 docker-compose.override.yml
 
 docs
+
+
+.github/
