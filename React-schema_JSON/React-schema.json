@@ -1,0 +1,21 @@
+{
+  "name": "Clean Two-Column",
+  "engine": "react-schema",
+  "tokens": {
+    "title": "text-3xl font-semibold",
+    "sectionTitle": "text-lg font-bold border-b pb-1",
+    "body": "text-sm leading-6"
+  },
+  "layout": [
+    { "type": "header", "fields": ["firstName","lastName","email","phone"] },
+    {
+      "type": "twoColumn",
+      "left": [
+        { "type": "section", "title": "Skills", "bind": "skills[]", "renderer": "bullets" },
+        { "type": "section", "title": "Education", "bind": "education[]" }
+      ],
+      "right": [{ "type": "section", "title": "Experience", "bind": "experiences[]" }]
+    }
+  ],
+  "variables": ["firstName","lastName","email","phone","skills[]","education[]","experiences[]"]
+}

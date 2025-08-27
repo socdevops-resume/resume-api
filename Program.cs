@@ -31,10 +31,12 @@ builder.Services.Configure<JwtSettings>(
 // - <see cref="CVService"/> for CV operations
 // - <see cref="UserService"/> for user management
 // - <see cref="TokenService"/> for JWT token handling
+// - <see cref="CVTemplateService"/> for managing CV templates
 
 builder.Services.AddSingleton<CVService>();
 builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddSingleton<CVTemplateService>();
 
 // ===== Controllers =====
 // Add controller support and minimal API endpoint discovery.

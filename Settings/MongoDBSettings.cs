@@ -34,4 +34,9 @@ public class MongoDBSettings
     /// Default value: <c>"CVs"</c>.
     /// </summary>
     public string CVsCollectionName { get; set; } = "CVs";
+    /// <summary>
+    /// The name of the collection storing CV template documents.
+    /// Default value: <c>"cv_templates"</c>.
+    /// </summary>
+    public string TemplatesCollectionName { get; set; } = "cv_templates";
 }
