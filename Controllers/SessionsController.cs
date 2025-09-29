@@ -21,17 +21,19 @@ public class SessionsController : ControllerBase
     private readonly UserService _userService;
     private readonly TokenService _tokenService;
     private readonly ILogger<SessionsController> _logger;
+    private readonly IPasswordHasher _passwordHasher;
 
     /// <summary>
     /// Initializes a new instance of <see cref="SessionsController"/>.
     /// </summary>
     /// <param name="userService">User lookup service.</param>
     /// <param name="tokenService">JWT issuing service.</param>
-    public SessionsController(UserService userService, TokenService tokenService, ILogger<SessionsController> logger)
+    public SessionsController(UserService userService, TokenService tokenService, ILogger<SessionsController> logger, IPasswordHasher passwordHasher)
     {
         _userService = userService;
         _tokenService = tokenService;
         _logger = logger;
+        _passwordHasher = passwordHasher;
     }
 
     /// <summary>
@@ -57,12 +59,17 @@ public class SessionsController : ControllerBase
 
         if (user is null)
         {
+            _logger.LogWarning("User not found: {Username}", request.Username);
             return Unauthorized(new AuthResponse { Message = "Invalid credentials." });
         }
 
-        // Compare against the same SHA-256 hashing scheme used in UsersController.
-        if (user.PasswordHash != UserControllerHash(request.Password))
-            return Unauthorized(new AuthResponse { Message = "Invalid credentials." });
+        var ok = _passwordHasher.Verify(request.Password, user.PasswordHash);
+        if (!ok)
+        {
+            _logger.LogWarning("Invalid password for {Username}", request.Password);
+            return Unauthorized(new AuthResponse { Message = "Invalid credentials(pssword)." });
+        }
+
 
         var token = _tokenService.Create(user);
         _logger.LogInformation("Login success for {Username}", user.Username);

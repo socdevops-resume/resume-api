@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.HttpLogging;
+using System.Security.Claims;
 using CVGeneratorAPI.Settings;
 using CVGeneratorAPI.Services;
 
@@ -37,6 +38,7 @@ builder.Services.AddSingleton<CVService>();
 builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddSingleton<CVTemplateService>();
+builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
 // ===== Controllers =====
 // Add controller support and minimal API endpoint discovery.
@@ -109,6 +111,8 @@ builder.Services
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = key,
             ValidateLifetime = true,
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
         // Optional: add logging for authentication events
@@ -148,7 +152,10 @@ builder.Services
 
 
 // Add authorization services to enforce role- or policy-based access control.
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
+});
 // add HTTP request logging
 builder.Services.AddHttpLogging(o =>
 {
@@ -181,6 +188,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+// seed admin before handling requests
+using (var scope = app.Services.CreateScope())
+{
+    var users = scope.ServiceProvider.GetRequiredService<UserService>();
+    await users.EnsureAdminUserAsync();
 }
 
 app.UseHttpsRedirection();

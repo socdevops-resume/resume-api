@@ -26,6 +26,10 @@ public class TokenService
             new(ClaimTypes.Email, user.Email)
         };
 
+        // add one "role" claim per role (ASP.NET maps these to ClaimTypes.Role)
+        foreach (var role in user.Roles ?? Array.Empty<string>())
+            claims.Add(new(ClaimTypes.Role, role));
+            
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

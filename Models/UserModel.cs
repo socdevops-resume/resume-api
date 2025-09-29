@@ -24,4 +24,16 @@ public class UserModel
     /// Stored securely instead of plaintext.
     /// </summary>
     public required string PasswordHash { get; set; }
+
+    // Simple role list. Default is a regular user.
+    /// <summary>
+    /// List of roles assigned to the user (e.g., "User", "Admin"). 
+    /// Default is ["User"].
+    /// </summary>
+    public string[] Roles { get; set; } = new[] { "User" };
+
+    /// <summary>Timestamp of when the user was created.</summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+     /// <summary>Timestamp of the last update to the user.</summary>
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

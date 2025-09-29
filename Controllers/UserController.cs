@@ -1,19 +1,21 @@
-using CVGeneratorAPI.Models;
-using CVGeneratorAPI.Services;
-using CVGeneratorAPI.Dtos;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+// Controllers/UsersController.cs
+using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using CVGeneratorAPI.Dtos;
+using CVGeneratorAPI.Models;
+using CVGeneratorAPI.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CVGeneratorAPI.Controllers;
 
 /// <summary>
-/// User account management endpoints (signup, read/update self, delete self).
+/// User account management endpoints (signup, read/update/delete self, and admin role management).
 /// </summary>
 /// <remarks>
-/// All endpoints under <c>/api/users</c>.
+/// Base route: <c>/api/users</c>.
 /// </remarks>
 [ApiController]
 [Route("api/users")]
@@ -22,6 +24,7 @@ public class UsersController : ControllerBase
 {
     private readonly UserService _userService;
     private readonly TokenService _tokenService;
+    private readonly IPasswordHasher _hasher;
     private readonly ILogger<UsersController> _logger;
 
     /// <summary>
@@ -29,10 +32,17 @@ public class UsersController : ControllerBase
     /// </summary>
     /// <param name="userService">Service for user persistence.</param>
     /// <param name="tokenService">Service for issuing JWT tokens.</param>
-    public UsersController(UserService userService, TokenService tokenService, ILogger<UsersController> logger)
+    /// <param name="logger">Logger for diagnostics.</param>
+    /// <param name="hasher">Password hashing service.</param>
+    public UsersController(
+        UserService userService,
+        TokenService tokenService,
+        IPasswordHasher hasher,
+        ILogger<UsersController> logger)
     {
         _userService = userService;
         _tokenService = tokenService;
+        _hasher = hasher;
         _logger = logger;
     }
 
@@ -49,6 +59,8 @@ public class UsersController : ControllerBase
     /// <returns>An <see cref="AuthResponse"/> with JWT token and user data when successful.</returns>
     [AllowAnonymous]
     [HttpPost]
+    [ProducesResponseType(typeof(AuthResponse), 201)]
+    [ProducesResponseType(400)]
     public async Task<ActionResult<AuthResponse>> Create([FromBody] SignUpRequest request)
     {
         var existing = await _userService.GetByUsernameAsync(request.Username);
@@ -61,10 +73,12 @@ public class UsersController : ControllerBase
         {
             Username = request.Username,
             Email = request.Email,
-            PasswordHash = HashPassword(request.Password)
+            PasswordHash = _hasher.Hash(request.Password),
         };
+
         await _userService.CreateUserAsync(user);
 
+        // Issue JWT for the new user
         var token = _tokenService.Create(user);
 
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, new AuthResponse
@@ -90,6 +104,9 @@ public class UsersController : ControllerBase
     /// <returns>The user's public profile data.</returns>
     [Authorize]
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(UserResponse), 200)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<UserResponse>> GetById(string id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -127,9 +144,13 @@ public class UsersController : ControllerBase
     /// <returns>The updated user data.</returns>
     [Authorize]
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(UserResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<UserResponse>> Update(string id, [FromBody] UpdateUserRequest request)
     {
-       var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId != id)
         {
             _logger.LogWarning("Forbidden UPDATE /api/users/{Id}: AuthUserId={AuthUserId}", id, currentUserId);
@@ -153,14 +174,15 @@ public class UsersController : ControllerBase
 
         var passwordHash = string.IsNullOrWhiteSpace(request.Password)
             ? existingUser.PasswordHash
-            : HashPassword(request.Password);
+            : _hasher.Hash(request.Password); ;
 
         var updated = new UserModel
         {
             Id = id,
             Username = request.Username,
             Email = request.Email,
-            PasswordHash = passwordHash
+            PasswordHash = passwordHash,
+            Roles = existingUser.Roles // preserve roles on self-update
         };
 
         await _userService.UpdateUserAsync(id, updated);
@@ -183,6 +205,8 @@ public class UsersController : ControllerBase
     /// <returns>No content when deletion succeeds.</returns>
     [Authorize]
     [HttpDelete("{id}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(403)]
     public async Task<ActionResult> Delete(string id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -196,17 +220,5 @@ public class UsersController : ControllerBase
         _logger.LogInformation("User deleted: UserId={Id}", id);
 
         return NoContent();
-    }
-
-    /// <summary>
-    /// Computes a SHA-256 hash for the provided password.
-    /// </summary>
-    /// <param name="password">The plaintext password to hash.</param>
-    /// <returns>Base64-encoded SHA-256 hash.</returns>
-    private static string HashPassword(string password)
-    {
-        using var sha256 = SHA256.Create();
-        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(bytes);
     }
 }
