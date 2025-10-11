@@ -2,8 +2,8 @@ using CVGeneratorAPI.Dtos;
 using CVGeneratorAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Cryptography;
-using System.Text;
+using CVGeneratorAPI.Models;
+
 
 namespace CVGeneratorAPI.Controllers;
 
@@ -28,6 +28,8 @@ public class SessionsController : ControllerBase
     /// </summary>
     /// <param name="userService">User lookup service.</param>
     /// <param name="tokenService">JWT issuing service.</param>
+    /// <param name="logger">Logger instance.</param>
+    /// <param name="passwordHasher">Password hashing service.</param>
     public SessionsController(UserService userService, TokenService tokenService, ILogger<SessionsController> logger, IPasswordHasher passwordHasher)
     {
         _userService = userService;
@@ -36,51 +38,64 @@ public class SessionsController : ControllerBase
         _passwordHasher = passwordHasher;
     }
 
+    
+    private static UserResponse ToUserResponse(UserModel u) => new(
+        u.Id!,
+        u.Username,
+        u.Email,
+        u.FirstName,
+        u.LastName,
+        u.Headline,
+        u.Phone,
+        u.Location,
+        u.AvatarUrl,
+        u.About,
+        u.Links ?? new List<Link>()
+    );
+
     /// <summary>
     /// Authenticates a user and creates a session (login).
     /// </summary>
     /// <remarks>
-    /// **Route:** <c>POST /api/sessions</c><br/>
-    /// **Responses:**
-    /// - <c>200 OK</c> with <see cref="AuthResponse"/> (JWT + user info) when credentials are valid.
-    /// - <c>401 Unauthorized</c> when credentials are invalid.
+    /// Route: POST /api/sessions
     /// </remarks>
-    /// <param name="request">Login credentials (username and password).</param>
-    /// <returns>An <see cref="AuthResponse"/> containing the JWT and user information.</returns>
     [AllowAnonymous]
     [HttpPost]
+    [ProducesResponseType(typeof(AuthResponse), 200)]
+    [ProducesResponseType(typeof(AuthResponse), 401)]
     public async Task<ActionResult<AuthResponse>> Create([FromBody] LoginRequest request)
     {
+        var identifier = (request.Username ?? string.Empty).Trim();
+        _logger.LogInformation("Login attempt for identifier: {Identifier}", identifier);
+
         // Try username first, then email
-        var identifier = request.Username?.Trim() ?? string.Empty;
-        _logger.LogInformation("Login attempt for {Username}", request.Username);
-        var user = await _userService.GetByUsernameAsync(identifier);
-        user ??= await _userService.GetByEmailAsync(identifier);
+        var user = await _userService.GetByUsernameAsync(identifier)
+                ?? await _userService.GetByEmailAsync(identifier);
 
         if (user is null)
         {
-            _logger.LogWarning("User not found: {Username}", request.Username);
+            _logger.LogWarning("Login failed: user not found for identifier {Identifier}", identifier);
             return Unauthorized(new AuthResponse { Message = "Invalid credentials." });
         }
 
-        var ok = _passwordHasher.Verify(request.Password, user.PasswordHash);
-        if (!ok)
+        var passwordOk = _passwordHasher.Verify(request.Password, user.PasswordHash);
+        if (!passwordOk)
         {
-            _logger.LogWarning("Invalid password for {Username}", request.Password);
-            return Unauthorized(new AuthResponse { Message = "Invalid credentials(pssword)." });
+            // IMPORTANT: never log the password; log only the identifier.
+            _logger.LogWarning("Login failed: invalid password for {Identifier}", identifier);
+            return Unauthorized(new AuthResponse { Message = "Invalid credentials." });
         }
-
 
         var token = _tokenService.Create(user);
         _logger.LogInformation("Login success for {Username}", user.Username);
+
         return Ok(new AuthResponse
         {
             Message = "Login successful.",
             Token = token,
-            User = new UserResponse { Id = user.Id!, Username = user.Username, Email = user.Email }
+            User = ToUserResponse(user)
         });
     }
-
     /// <summary>
     /// Ends the current session (logout).
     /// </summary>
@@ -93,15 +108,5 @@ public class SessionsController : ControllerBase
     [HttpDelete]
     public IActionResult Delete() => NoContent();
 
-    /// <summary>
-    /// Computes a Base64-encoded SHA-256 hash of a password.
-    /// </summary>
-    /// <param name="password">The plaintext password.</param>
-    /// <returns>Base64-encoded SHA-256 hash string.</returns>
-    private static string UserControllerHash(string password)
-    {
-        using var sha256 = SHA256.Create();
-        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(bytes);
-    }
+   
 }
