@@ -62,6 +62,9 @@ public class CVModel
 
     /// <summary>List of external links (e.g., LinkedIn, GitHub, Website).</summary>
     public required List<Link> Links { get; set; } = new();
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
 /// <summary>
