@@ -8,14 +8,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CVGeneratorAPI.Services;
 
-public class TokenService
+public class TokenService(IOptions<JwtSettings> jwt)
 {
-    private readonly JwtSettings _jwt;
-
-    public TokenService(IOptions<JwtSettings> jwt)
-    {
-        _jwt = jwt.Value;
-    }
+    private readonly JwtSettings _jwt = jwt.Value;
 
     public string Create(UserModel user)
     {

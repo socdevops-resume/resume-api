@@ -1,25 +1,33 @@
+using System.ComponentModel.DataAnnotations;
+using CVGeneratorAPI.Models;
+
 namespace CVGeneratorAPI.Dtos;
 
 /// <summary>
-/// Request payload for updating an existing user account.
+/// Request payload for updating the current user's profile.
+/// All properties are optional; only non-null values are applied.
 /// </summary>
-public class UpdateUserRequest
+public record UpdateUserRequest
 {
-    /// <summary>
-    /// The updated username.
-    /// </summary>
-    public required string Username { get; set; }
+    [MinLength(3), MaxLength(32)]
+    public string? Username { get; init; }
 
-    /// <summary>
-    /// The updated email address.
-    /// </summary>
-    public required string Email { get; set; }
+    [EmailAddress, MaxLength(254)]
+    public string? Email { get; init; }
 
-    /// <summary>
-    /// New password to replace the old one (optional).
-    /// </summary>
-    /// <remarks>
-    /// If not provided, the existing password will remain unchanged.
-    /// </remarks>
-    public string? Password { get; set; }
+    // Profile fields (optional)
+    [MaxLength(50)]  public string? FirstName { get; init; }
+    [MaxLength(50)]  public string? LastName  { get; init; }
+    [MaxLength(80)]  public string? Headline  { get; init; }
+    [Phone]          public string? Phone     { get; init; }
+    [MaxLength(80)]  public string? Location  { get; init; }
+    [Url]            public string? AvatarUrl { get; init; }
+    [MaxLength(1000)]public string? About     { get; init; }
+
+    // If provided, your controller/service should hash it and bump token version
+    [MinLength(8), MaxLength(128)]
+    public string? Password { get; init; }
+
+    // Optional social links; replacing the entire set when not null.
+    public List<Link>? Links { get; init; }
 }

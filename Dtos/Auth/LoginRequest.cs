@@ -1,20 +1,11 @@
 namespace CVGeneratorAPI.Dtos;
+using System.ComponentModel.DataAnnotations;
 
 /// <summary>
 /// Request payload used when logging into the system.
 /// </summary>
-public class LoginRequest
-{
-    /// <summary>
-    /// The username of the account attempting to log in.
-    /// </summary>
-    public required string Username { get; set; }
+public record LoginRequest(
+    [Required] string Username,      // can be username OR email
+    [Required] string Password
+);
 
-    /// <summary>
-    /// The plain-text password provided for authentication.
-    /// </summary>
-    /// <remarks>
-    /// This password will be hashed and validated against the stored password hash.
-    /// </remarks>
-    public required string Password { get; set; }
-}

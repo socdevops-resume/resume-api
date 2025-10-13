@@ -1,100 +1,46 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CVGeneratorAPI.Dtos;
 
-/// <summary>
-/// Request payload for creating a new CV.
-/// </summary>
-public class CreateCVRequest
+/// <summary>Request payload for creating a new CV.</summary>
+public record CreateCVRequest
 {
-    /// <summary>First name of the CV owner.</summary>
-    public required string FirstName { get; set; }
+    [Required] public string FirstName { get; init; } = default!;
+    [Required] public string LastName  { get; init; } = default!;
+    [Required] public string City      { get; init; } = default!;
+    [Required] public string Country   { get; init; } = default!;
+    [Required] public string Postcode  { get; init; } = default!;
+    [Required] public string Phone     { get; init; } = default!;
+    [Required, EmailAddress] public string Email { get; init; } = default!;
 
-    /// <summary>Last name of the CV owner.</summary>
-    public required string LastName { get; set; }
+    public string? Photo { get; init; }
 
-    /// <summary>City of residence.</summary>
-    public required string City { get; set; }
+    [Required] public string JobTitle { get; init; } = default!;
+    [Required] public string Summary  { get; init; } = default!;
 
-    /// <summary>Country of residence.</summary>
-    public required string Country { get; set; }
+    [Required] public List<string> Skills { get; init; } = new();
 
-    /// <summary>Postal/ZIP code.</summary>
-    public required string Postcode { get; set; }
-
-    /// <summary>Contact phone number.</summary>
-    public required string Phone { get; set; }
-
-    /// <summary>Contact email address.</summary>
-    public required string Email { get; set; }
-
-    /// <summary>Optional base64-encoded photo.</summary>
-    public string? Photo { get; set; }
-
-    /// <summary>Job title or professional headline.</summary>
-    public required string JobTitle { get; set; }
-
-    /// <summary>Professional summary or profile statement.</summary>
-    public required string Summary { get; set; }
-
-    /// <summary>List of skills.</summary>
-    public required List<string> Skills { get; set; } = new();
-
-    /// <summary>List of work experiences.</summary>
-    public required List<WorkExperienceDto> WorkExperiences { get; set; } = new();
-
-    /// <summary>List of educational qualifications.</summary>
-    public required List<EducationDto> Educations { get; set; } = new();
-
-    /// <summary>List of external links (e.g., LinkedIn, GitHub, Website).</summary>
-    public required List<LinkDto> Links { get; set; } = new();
+    [Required] public List<WorkExperienceDto> WorkExperiences { get; init; } = new();
+    [Required] public List<EducationDto>     Educations       { get; init; } = new();
+    [Required] public List<LinkDto>          Links            { get; init; } = new();
 }
 
-/// <summary>
-/// A work experience entry for a CV.
-/// </summary>
-public class WorkExperienceDto
-{
-    /// <summary>Job position or role.</summary>
-    public required string Position { get; set; }
+public record WorkExperienceDto(
+    [property: Required] string Position,
+    [property: Required] string Company,
+    [property: Required] DateTime StartDate,
+    DateTime? EndDate,
+    [property: Required] string Description
+);
 
-    /// <summary>Company name.</summary>
-    public required string Company { get; set; }
+public record EducationDto(
+    [property: Required] string Degree,
+    [property: Required] string School,
+    [property: Required] DateTime StartDate,
+    DateTime? EndDate
+);
 
-    /// <summary>Start date of the employment.</summary>
-    public required DateTime StartDate { get; set; }
-
-    /// <summary>End date of the employment (null if ongoing).</summary>
-    public DateTime? EndDate { get; set; }
-
-    /// <summary>Description of responsibilities and achievements.</summary>
-    public required string Description { get; set; }
-}
-
-/// <summary>
-/// An education entry for a CV.
-/// </summary>
-public class EducationDto
-{
-    /// <summary>Degree or qualification earned.</summary>
-    public required string Degree { get; set; }
-
-    /// <summary>Name of the school, college, or university.</summary>
-    public required string School { get; set; }
-
-    /// <summary>Start date of the study period.</summary>
-    public required DateTime StartDate { get; set; }
-
-    /// <summary>End date of the study period (null if ongoing).</summary>
-    public DateTime? EndDate { get; set; }
-}
-
-/// <summary>
-/// An external profile or portfolio link (e.g., LinkedIn, GitHub).
-/// </summary>
-public class LinkDto
-{
-    /// <summary>Type of link (e.g., "LinkedIn", "GitHub", "Website").</summary>
-    public required string Type { get; set; }
-
-    /// <summary>URL of the external resource.</summary>
-    public required string Url { get; set; }
-}
+public record LinkDto(
+    [property: Required] string Type,
+    [property: Required, Url] string Url
+);
