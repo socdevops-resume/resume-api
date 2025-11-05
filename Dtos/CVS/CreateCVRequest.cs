@@ -19,28 +19,30 @@ public record CreateCVRequest
     [Required] public string Summary  { get; init; } = default!;
 
     [Required] public List<string> Skills { get; init; } = new();
-
     [Required] public List<WorkExperienceDto> WorkExperiences { get; init; } = new();
-    [Required] public List<EducationDto>     Educations       { get; init; } = new();
-    [Required] public List<LinkDto>          Links            { get; init; } = new();
+    [Required] public List<EducationDto> Educations { get; init; } = new();
+    [Required] public List<LinkDto> Links { get; init; } = new();
 }
 
-public record WorkExperienceDto(
-    [property: Required] string Position,
-    [property: Required] string Company,
-    [property: Required] DateTime StartDate,
-    DateTime? EndDate,
-    [property: Required] string Description
-);
+public record WorkExperienceDto
+{
+    [Required] public string Position { get; init; } = default!;
+    [Required] public string Company { get; init; } = default!;
+    [Required] public DateTime StartDate { get; init; }
+    public DateTime? EndDate { get; init; }
+    [Required] public string Description { get; init; } = default!;
+}
 
-public record EducationDto(
-    [property: Required] string Degree,
-    [property: Required] string School,
-    [property: Required] DateTime StartDate,
-    DateTime? EndDate
-);
+public record EducationDto
+{
+    [Required] public string Degree { get; init; } = default!;
+    [Required] public string School { get; init; } = default!;
+    [Required] public DateTime StartDate { get; init; }
+    public DateTime? EndDate { get; init; }
+}
 
-public record LinkDto(
-    [property: Required] string Type,
-    [property: Required, Url] string Url
-);
+public record LinkDto
+{
+    [Required] public string Type { get; init; } = default!;
+    [Required, Url] public string Url { get; init; } = default!;
+}

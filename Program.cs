@@ -149,8 +149,12 @@ builder.Services
             }
         };
     });
-
-
+// ===== Additional Middleware Services =====
+// Register <see cref="LlmClient"/> for making HTTP requests to the LLM API.
+builder.Services.AddHttpClient<LlmClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Llm:BaseUrl"]!);
+});
 // Add authorization services to enforce role- or policy-based access control.
 builder.Services.AddAuthorization(options =>
 {
