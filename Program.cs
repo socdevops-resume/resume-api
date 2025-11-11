@@ -4,8 +4,11 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.HttpLogging;
 using System.Security.Claims;
+using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
 using CVGeneratorAPI.Settings;
 using CVGeneratorAPI.Services;
+using CVGeneratorAPI.Services.Llm;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +28,10 @@ builder.Services.Configure<MongoDBSettings>(
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
+// Bind LLM configuration section to <see cref="LlmSettings"/> 
+// and register it for dependency injection.
+builder.Services.Configure<LlmSettings>(builder.Configuration.GetSection("Llm"));
+
 // ===== Services =====
 
 
@@ -39,6 +46,11 @@ builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddSingleton<CVTemplateService>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+
+// Register LLM-related services:
+// - <see cref="LlmClient"/> for making HTTP requests to the LLM API
+builder.Services.AddTransient<LlmAuthHandler>();
+builder.Services.AddScoped<LlmService>();
 
 // ===== Controllers =====
 // Add controller support and minimal API endpoint discovery.
@@ -151,10 +163,14 @@ builder.Services
     });
 // ===== Additional Middleware Services =====
 // Register <see cref="LlmClient"/> for making HTTP requests to the LLM API.
-builder.Services.AddHttpClient<LlmClient>(client =>
+builder.Services.AddHttpClient<ILlmClient, LlmClient>((sp, http) =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["Llm:BaseUrl"]!);
-});
+    var s = sp.GetRequiredService<IOptions<LlmSettings>>().Value;
+    http.BaseAddress = new Uri(s.BaseUrl);
+    http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    http.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddHttpMessageHandler<LlmAuthHandler>();
 // Add authorization services to enforce role- or policy-based access control.
 builder.Services.AddAuthorization(options =>
 {
