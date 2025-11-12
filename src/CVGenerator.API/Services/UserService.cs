@@ -18,10 +18,15 @@ public class UserService
         var database = client.GetDatabase(mongoDBSettings.Value.DatabaseName);
         _userCollection = database.GetCollection<UserModel>(mongoDBSettings.Value.UsersCollectionName);
 
-        // (Optional but recommended) Ensure indexes for quick lookups & uniqueness
+        //  Ensure indexes for quick lookups & uniqueness
         // CreateIndexesIfMissing(); // uncomment if you want to run at startup
     }
-
+    // Overload for tests
+    public UserService(IMongoCollection<UserModel> users, IPasswordHasher hasher)
+    {
+        _userCollection = users;
+        _hasher = hasher;
+    }
     public async Task<UserModel?> GetByUsernameAsync(string username) =>
         await _userCollection.Find(u => u.Username == username).FirstOrDefaultAsync();
 

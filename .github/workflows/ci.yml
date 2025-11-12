@@ -4,16 +4,21 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "**/*.cs"
-      - "**/*.csproj"
-      - "**/*.sln"
+      - "src/**"
+      - "tests/**"
+      - "Directory.Build.*"
+      - "global.json"
       - ".github/workflows/**"
+      - "Dockerfile"
   pull_request:
     branches: [ main ]
     paths:
-      - "**/*.cs"
-      - "**/*.csproj"
-      - "**/*.sln"
+      - "src/**"
+      - "tests/**"
+      - "Directory.Build.*"
+      - "global.json"
+      - ".github/workflows/**"
+      - "Dockerfile"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,10 +27,10 @@ concurrency:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
       ASPNETCORE_ENVIRONMENT: Test
 
     steps:
@@ -35,18 +40,24 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            9.0.x
-            8.0.x
-            7.0.x
+          global-json-file: global.json
 
       - name: Cache NuGet
         uses: actions/cache@v4
         with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          path: |
+            ~/.nuget/packages
+            ~/.local/share/NuGet/v3-cache
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.sln', '**/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
+      # speed up Mongo2Go on CI by caching its binaries
+      - name: Cache Mongo2Go binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.mongo2go
+          key: mongo2go-cache
 
       - name: Restore
         run: dotnet restore
@@ -54,7 +65,7 @@ jobs:
       - name: Build (Release)
         run: dotnet build --configuration Release --no-restore
 
-      - name: Test
+      - name: Test (with coverage)
         if: ${{ hashFiles('**/*Tests.csproj') != '' }}
         run: dotnet test --configuration Release --no-build --collect "XPlat Code Coverage" --logger "trx;LogFileName=test_results.trx"
 
@@ -68,7 +79,8 @@ jobs:
             **/TestResults/**/coverage.cobertura.xml
 
       - name: Publish (artifact)
-        run: dotnet publish ./ -c Release -o ./out
+        run: dotnet publish ./src/CVGeneratorAPI/CVGeneratorAPI.csproj -c Release -o ./out
+
       - name: Upload App Artifact
         uses: actions/upload-artifact@v4
         with:

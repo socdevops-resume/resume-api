@@ -20,7 +20,7 @@ project.lock.json
 *.nupkg
 packages/
 artifacts/
-
+coveragereport/
 # Ignore Environment Variables and Secrets
 .env
 appsettings.json
@@ -37,3 +37,5 @@ docs
 
 
 .github/
+
+
