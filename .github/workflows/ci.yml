@@ -52,39 +52,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
       
-      - name: Cache Mongo2Go binaries
-        uses: actions/cache@v4
-        with:
-          path: ~/.mongo2go
-          key: mongo2go-cache
+      - name: Restore
+        run: dotnet restore
 
-      # Build the solution in Debug so tests have PDBs for coverage
-      - name: Build (Debug for tests)
-        run: dotnet build --configuration Debug --no-restore
+      - name: Build (Release)
+        run: dotnet build --configuration Release --no-restore
 
-      # Run tests with XPlat collector (produces Cobertura XML under TestResults)
-      - name: Test (with coverage)
+      - name: Test
         if: ${{ hashFiles('**/*Tests.csproj') != '' }}
-        run: dotnet test --configuration Debug --no-build --collect "XPlat Code Coverage"
+        run: dotnet test --configuration Release --no-build --collect "XPlat Code Coverage" --logger "trx;LogFileName=test_results.trx"
 
-      # Generate human-friendly HTML from Cobertura XML
-      - name: Generate coverage HTML
-        run: |
-          dotnet tool install -g dotnet-reportgenerator-globaltool
-          reportgenerator \
-            -reports:**/coverage.cobertura.xml \
-            -targetdir:coveragereport \
-            -reporttypes:HtmlInline
-
-      # Upload ONLY the HTML report (no trx/xml)
-      - name: Upload coverage HTML
+      - name: Upload Test Results
+        if: always() && hashFiles('**/*Tests.csproj') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-html
-          path: coveragereport/
+          name: test-results
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/**/coverage.cobertura.xml
 
-      # Publish the app in Release as a separate step
-      - name: Publish (Release artifact)
+      - name: Publish (artifact)
         run: dotnet publish ./src/CVGenerator.API/CVGeneratorAPI.csproj -c Release -o ./out
 
       - name: Upload App Artifact
