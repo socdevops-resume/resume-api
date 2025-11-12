@@ -79,7 +79,7 @@ jobs:
             **/TestResults/**/coverage.cobertura.xml
 
       - name: Publish (artifact)
-        run: dotnet publish ./src/CVGeneratorAPI/CVGeneratorAPI.csproj -c Release -o ./out
+        run: dotnet publish ./src/CVGenerator.API/CVGeneratorAPI.csproj -c Release -o ./out
 
       - name: Upload App Artifact
         uses: actions/upload-artifact@v4
