@@ -62,13 +62,22 @@ jobs:
         if: ${{ hashFiles('**/*Tests.csproj') != '' }}
         run: dotnet test --configuration Release --no-build --collect "XPlat Code Coverage" --logger "trx;LogFileName=test_results.trx"
 
+      - name: Generate HTML Coverage Report
+        if: always() && hashFiles('**/*Tests.csproj') != ''
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+          reportgenerator \
+            -reports:**/TestResults/**/coverage.cobertura.xml \
+            -targetdir:coverage-html \
+            -reporttypes:Html
+
       - name: Upload Coverage Report
         if: always() && hashFiles('**/*Tests.csproj') != ''
         uses: actions/upload-artifact@v4
         with:
           name: coverage-html
-          path: |
-            **/TestResults/**/coveragereport/**/*.html
+          path: coverage-html/**
 
       - name: Publish (artifact)
         run: dotnet publish ./src/CVGenerator.API/CVGeneratorAPI.csproj -c Release -o ./out
