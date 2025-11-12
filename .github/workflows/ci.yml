@@ -85,7 +85,7 @@ jobs:
 
       # Publish the app in Release as a separate step
       - name: Publish (Release artifact)
-        run: dotnet publish ./src/CVGeneratorAPI/CVGenerator.API.csproj -c Release -o ./out
+        run: dotnet publish ./src/CVGenerator.API/CVGeneratorAPI.csproj -c Release -o ./out
 
       - name: Upload App Artifact
         uses: actions/upload-artifact@v4
