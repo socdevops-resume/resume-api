@@ -62,14 +62,13 @@ jobs:
         if: ${{ hashFiles('**/*Tests.csproj') != '' }}
         run: dotnet test --configuration Release --no-build --collect "XPlat Code Coverage" --logger "trx;LogFileName=test_results.trx"
 
-      - name: Upload Test Results
+      - name: Upload Coverage Report
         if: always() && hashFiles('**/*Tests.csproj') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: coverage-html
           path: |
-            **/TestResults/*.trx
-            **/TestResults/**/coverage.cobertura.xml
+            **/TestResults/**/coveragereport/**/*.html
 
       - name: Publish (artifact)
         run: dotnet publish ./src/CVGenerator.API/CVGeneratorAPI.csproj -c Release -o ./out
