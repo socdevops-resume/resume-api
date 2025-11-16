@@ -12,7 +12,13 @@ using CVGeneratorAPI.Services.Llm;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+// ===== Load LLM API key from secret file =====
+var llmApiKeyFile = builder.Configuration["Llm:ApiKeyFile"];
+if (!string.IsNullOrEmpty(llmApiKeyFile) && File.Exists(llmApiKeyFile))
+{
+    var llmSecret = File.ReadAllText(llmApiKeyFile).Trim();
+    builder.Configuration["Llm:ApiKey"] = llmSecret;
+}
 // ===== Settings =====
 
 // Bind MongoDB configuration section to <see cref="MongoDBSettings"/> 
@@ -21,6 +27,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<MongoDBSettings>(
     builder.Configuration.GetSection("MongoDBSettings"));
 
+// ===== Load JWT secret from secret file =====
+var jwtSecretFile = builder.Configuration["Jwt:SecretFile"];
+if (!string.IsNullOrEmpty(jwtSecretFile) && File.Exists(jwtSecretFile))
+{
+    var jwtSecret = File.ReadAllText(jwtSecretFile).Trim();
+    builder.Configuration["Jwt:Secret"] = jwtSecret;
+}
 
 // Bind JWT configuration section to <see cref="JwtSettings"/> 
 // and register it for dependency injection.
@@ -211,11 +224,11 @@ if (app.Environment.IsDevelopment())
 }
 
 // seed admin before handling requests
-using (var scope = app.Services.CreateScope())
-{
-    var users = scope.ServiceProvider.GetRequiredService<UserService>();
-    await users.EnsureAdminUserAsync();
-}
+// using (var scope = app.Services.CreateScope())
+// {
+//     var users = scope.ServiceProvider.GetRequiredService<UserService>();
+//     await users.EnsureAdminUserAsync();
+// }
 
 app.UseHttpsRedirection();
 app.UseHttpLogging();   // logs method/path/status, headers, etc.

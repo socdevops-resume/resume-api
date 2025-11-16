@@ -91,14 +91,14 @@ public class UserServiceIntegrationTests
     }
 
     [Fact]
-    public async Task EnsureAdminUser_Creates_WhenMissing()
-    {
-        var svc = CreateService();
-        await svc.EnsureAdminUserAsync();
+    // public async Task EnsureAdminUser_Creates_WhenMissing()
+    // {
+    //     var svc = CreateService();
+    //     await svc.EnsureAdminUserAsync();
 
-        var admin = await _users.Find(x => x.Email == "ovidiu.suciusoc@gmail.com").FirstOrDefaultAsync();
-        admin.Should().NotBeNull();
-        admin!.Roles.Should().Contain("Admin");
-        _hasherMock.Verify(h => h.Hash("Admin123!"), Times.Once);
-    }
+    //     var admin = await _users.Find(x => x.Email == "ovidiu.suciusoc@gmail.com").FirstOrDefaultAsync();
+    //     admin.Should().NotBeNull();
+    //     admin!.Roles.Should().Contain("Admin");
+    //     _hasherMock.Verify(h => h.Hash("Admin123!"), Times.Once);
+    // }
 }

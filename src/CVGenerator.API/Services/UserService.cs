@@ -132,21 +132,21 @@ public class UserService
     /// Ensure there's at least one admin user in the database.
     /// Call this from Program.cs at startup.
     /// </summary>
-    public async Task EnsureAdminUserAsync()
-    {
-        var adminEmail = "ovidiu.suciusoc@gmail.com";
-        var adminUser = await GetByEmailAsync(adminEmail);
-        if (adminUser != null) return;
+    // public async Task EnsureAdminUserAsync()
+    // {
+    //     var adminEmail = "ovidiu.suciusoc@gmail.com";
+    //     var adminUser = await GetByEmailAsync(adminEmail);
+    //     if (adminUser != null) return;
 
-        var admin = new UserModel
-        {
-            Username = "admin",
-            Email = adminEmail,
-            PasswordHash = _hasher.Hash("Admin123!"),
-            Roles = new[] { "Admin" }
-        };
-        await CreateUserAsync(admin);
-    }
+    //     var admin = new UserModel
+    //     {
+    //         Username = "admin",
+    //         Email = adminEmail,
+    //         PasswordHash = _hasher.Hash("Admin123!"),
+    //         Roles = new[] { "Admin" }
+    //     };
+    //     await CreateUserAsync(admin);
+    // }
 
     // -----------------------
     // Helpers / builders

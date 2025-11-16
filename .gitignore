@@ -30,12 +30,11 @@ appsettings.Development.json
 data/db/
 dump/
 
-# Ignore Docker Files (optional)
+# Ignore Docker Files 
 docker-compose.override.yml
 
 docs
 
-
-.github/
+secrets/
 
 
