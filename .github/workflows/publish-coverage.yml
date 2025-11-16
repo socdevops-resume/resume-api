@@ -1,0 +1,67 @@
+name: Publish Coverage
+
+on:
+  workflow_run:
+    workflows: ["CI - Build & Test"]
+    types:
+      - completed
+
+jobs:
+  publish-coverage:
+    # Only run when CI succeeded AND on main branch
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write       # push to coverage-report branch
+      actions: read         # download artifacts from previous workflow
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage XML artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage-xml
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Generate coverage report (HTML + badges + summary)
+        uses: danielpalme/ReportGenerator-GitHub-Action@v5
+        with:
+          reports: 'coverage-xml/**/coverage.cobertura.xml'
+          targetdir: 'coveragereport'
+          reporttypes: 'Html;Badges;MarkdownSummaryGithub'
+          assemblyfilters: '-*Tests*'
+
+      - name: Append coverage summary to job summary
+        run: cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: Publish coverage reports to coverage-report branch
+        shell: bash
+        run: |
+          git fetch
+
+          # switch to coverage-report branch, or create it as orphan
+          git checkout coverage-report || git checkout --orphan coverage-report
+
+          # wipe old contents from this branch
+          git reset --hard
+          git clean -fdx
+
+          # copy new coverage site to branch root
+          cp -rp coveragereport/* ./
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .
+          git commit -m "Update coverage reports [skip ci]" || echo "No changes to commit"
+          git push origin coverage-report --force
