@@ -5,33 +5,7 @@ This project consists of a **.NET Core Web API backend** with a MongoDB database
 
 ## 🧩 Project Structure
 
-```
-CV_Generator_API/
-├─ Controllers/
-│ ├─ UsersController.cs 
-│ ├─ SessionsController.cs 
-│ └─ CVsController.cs
-├─ Dtos/
-│ ├─ Auth/ 
-│ ├─ Users/ 
-│ └─ CVs/ 
-├─ Mappers/ # Mapping helpers between Models and Dtos
-│ └─ CVMappers.cs
-├─ Models/
-│ ├─ UserModel.cs
-│ └─ CVModel.cs
-├─ Services/
-│ ├─ UserService.cs # Mongo user CRUD
-│ ├─ CVService.cs # Mongo CV CRUD (scoped by UserId)
-│ └─ TokenService.cs # Issues JWTs
-├─ Settings/
-│ ├─ MongoDBSettings.cs # Connection string, DB & collection names
-│ └─ JwtSettings.cs # Issuer, Audience, Secret, ExpMinutes
-├─ Properties/
-│ └─ launchSettings.json
-├─ Program.cs # DI, JWT auth, Swagger (Authorize button), pipeline
-├─ appsettings.json # MongoDBSettings + Jwt configuration
-```
+
 
 ## ✨ Features
 
