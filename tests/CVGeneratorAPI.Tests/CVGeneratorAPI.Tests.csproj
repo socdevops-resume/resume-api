@@ -24,7 +24,6 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- If you explicitly referenced MongoDB.Driver here, either delete it or bump to 3.2.1 -->
   <!-- <ItemGroup>
     <PackageReference Include="MongoDB.Driver" Version="3.2.1" />
   </ItemGroup> -->

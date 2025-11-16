@@ -90,7 +90,7 @@ public class UserServiceIntegrationTests
         updated.TokenVersion.Should().Be(1);
     }
 
-    [Fact]
+    // [Fact]
     // public async Task EnsureAdminUser_Creates_WhenMissing()
     // {
     //     var svc = CreateService();
