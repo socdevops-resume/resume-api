@@ -1,4 +1,4 @@
-name: CI - Build & Test
+name: CI - Resume API (Build & Test)
 
 on:
   push:
@@ -28,11 +28,32 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
 
+    # Mongo service for integration tests
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: example
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
       ASPNETCORE_ENVIRONMENT: Test
+
+      ConnectionStrings__MongoDb: mongodb://root:example@mongo:27017/ResumeDb?authSource=admin
+      Jwt__Key: "test-secret-key"
+      Jwt__Issuer: "test-issuer"
+      Jwt__Audience: "test-audience"
+      Llm__BaseUrl: "http://localhost:9999"
 
     steps:
       - name: Checkout
@@ -68,7 +89,6 @@ jobs:
           --collect "XPlat Code Coverage"
           --logger "trx;LogFileName=test_results.trx"
 
-      # minimal artifact: just Cobertura + trx (optional)
       - name: Upload coverage XML
         if: always() && hashFiles('**/*Tests.csproj') != ''
         uses: actions/upload-artifact@v4
@@ -77,14 +97,14 @@ jobs:
           path: |
             **/TestResults/**/coverage.cobertura.xml
 
-      - name: Upload test results (optional)
+      - name: Upload test results
         if: always() && hashFiles('**/*Tests.csproj') != ''
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: |
             **/TestResults/**/*.trx
-          
+
       - name: Publish API (Release)
         run: dotnet publish ./src/CVGenerator.API/CVGeneratorAPI.csproj -c Release -o ./out
 
