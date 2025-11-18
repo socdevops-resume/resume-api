@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.HttpLogging;
@@ -73,7 +74,6 @@ builder.Services.AddEndpointsApiExplorer();
 
 // ===== Swagger (+ Bearer button) =====
 
-
 // Configure Swagger with API metadata and JWT Bearer authentication support.
 // Adds an "Authorize" button to Swagger UI for testing secured endpoints.
 
@@ -114,6 +114,9 @@ builder.Services.AddSwaggerGen(c =>
     var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
+
+// Add health check services to monitor application health.
+builder.Services.AddHealthChecks();
 
 // ===== Authentication / Authorization =====
 
@@ -238,5 +241,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();
