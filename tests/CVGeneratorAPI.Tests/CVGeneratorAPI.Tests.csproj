@@ -29,7 +29,7 @@
   </ItemGroup> -->
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\CVGenerator.API\CVGeneratorAPI.csproj" />
+    <ProjectReference Include="..\..\src\CVGenerator.API\CVGenerator.API.csproj" />
   </ItemGroup>
 
 </Project>
